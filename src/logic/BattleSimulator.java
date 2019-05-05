@@ -1,5 +1,6 @@
 package logic;
 import java.util.Arrays;
+import logger.Logger;
 
 public class BattleSimulator {
 	private int simulationCount;
@@ -7,11 +8,13 @@ public class BattleSimulator {
 	private int defenseArmy;
 	private int resetAttack;
 	private int resetDefense;
+	private Logger log;
 	
-	public BattleSimulator(int simulationCount, int attackArmy, int defenseArmy) {
+	public BattleSimulator(int simulationCount, int attackArmy, int defenseArmy, boolean isTextFileOutput) {
 		this.simulationCount = simulationCount;
 		this.attackArmy = attackArmy;
 		this.defenseArmy = defenseArmy;
+		this.log = new Logger(isTextFileOutput);
 		
 		resetAttack = attackArmy;
 		resetDefense = defenseArmy;
@@ -23,24 +26,60 @@ public class BattleSimulator {
 		int attackRemaining = 0;
 		int defenseRemaining = 0;
 		
+		//Loop for number of sims
 		for (int i = 1; i <= simulationCount; i++) {
-			System.out.println("\n-----");
-			System.out.println("Simulation " + i);
-			System.out.println("-----");
-			reportArmies();
+			log.simHeader(i);
 			
-			doBattle();
+			log.reportArmies(attackArmy, defenseArmy);
 			
+			//Loop for number of rounds
+			int round = 1;
+			do {
+				log.roundHeader(round);
+				round++;
+				
+				int[] attackDice = getDice(true, attackArmy);
+				int[] defenseDice = getDice(false, defenseArmy);
+				
+				log.reportRolls(attackDice, defenseDice);
+				
+				int atkCasualties = 0;
+				int defCasualties = 0;
+				
+				//Loop for comparing dice
+				int reps = Math.min(attackDice.length, defenseDice.length);
+				for (int j = 0; j < reps; j++) {
+					int atkHigh = attackDice[attackDice.length - (1 + j)];
+					int defHigh = defenseDice[defenseDice.length - (1 + j)];
+					int difference = atkHigh - defHigh;
+					if (difference > 0)
+						defCasualties++;
+					else
+						atkCasualties++;
+				}
+				
+				log.reportLosses(atkCasualties, defCasualties);
+				
+				attackArmy -= atkCasualties;
+				defenseArmy -= defCasualties;
+				
+				log.reportArmies(attackArmy, defenseArmy);
+				
+			} while (attackArmy > 1 && defenseArmy > 0);
+			
+			String winner;
 			if (attackArmy > 1) {
 				attackWins++;
 				attackRemaining += attackArmy;
-				System.out.println("Attack won.");
+				winner = "Attack";
 			} else {
 				defenseWins++;
 				attackRemaining++;
 				defenseRemaining += defenseArmy;
-				System.out.println("Defense won.");
+				winner = "Defense";
 			}
+			
+			log.reportBattleOutcome(winner);
 			
 			attackArmy = resetAttack;
 			defenseArmy = resetDefense;
@@ -49,28 +88,14 @@ public class BattleSimulator {
 		double averageAttackRemaining = attackRemaining / simulationCount;
 		double averageDefenseRemaining = defenseRemaining / simulationCount;
 		
-		System.out.printf("%nAttack won %d %s with an average of %.1f %s left.%n", 
-				attackWins, grammar(attackWins, "time", "times"), averageAttackRemaining, grammar(averageAttackRemaining, "troop", "troops"));
+		log.reportSimulationOutcome(attackWins, averageAttackRemaining, defenseWins, averageDefenseRemaining);
+		log.close();
+		
+		System.out.printf("Attack won %d %s with an average of %.1f %s left.%n", 
+				attackWins, log.grammar(attackWins, "time", "times"), averageAttackRemaining, log.grammar(averageAttackRemaining, "troop", "troops"));
 		
 		System.out.printf("Defense won %d %s with an average of %.1f %s left.%n", 
-				defenseWins, grammar(defenseWins, "time", "times"), averageDefenseRemaining, grammar(averageDefenseRemaining, "troop", "troops"));
-	}
-	
-	public void doBattle() {
-		int round = 1;
-		do {
-			System.out.println("-");
-			System.out.println("Round " + round++);
-			System.out.println("-");
-			
-			int[] attackDice = getDice(true, attackArmy);
-			int[] defenseDice = getDice(false, defenseArmy);
-			
-			System.out.println("Attack rolled: " + Arrays.toString(attackDice));
-			System.out.println("Defense rolled: " + Arrays.toString(defenseDice));
-			
-			compareDice(attackDice, defenseDice);
-		} while (attackArmy > 1 && defenseArmy > 0);
+				defenseWins, log.grammar(defenseWins, "time", "times"), averageDefenseRemaining, log.grammar(averageDefenseRemaining, "troop", "troops"));
 	}
 	
 	public int[] getDice(boolean isAttack, int army) {
@@ -83,9 +108,9 @@ public class BattleSimulator {
 			attackOffset = 1;
 		}
 		
-		if (army > maxDice) {
+		if (army > maxDice)
 			dice = new int[maxDice];
-		} else
+		else
 			dice = new int[army - attackOffset];
 		
 		for (int i = 0; i < dice.length; i++)
@@ -94,40 +119,5 @@ public class BattleSimulator {
 		Arrays.sort(dice);
 		
 		return dice;
-	}
-	
-	public void compareDice(int[] atkDice, int[] defDice) {
-		int atkCasualties = 0;
-		int defCasualties = 0;
-		int reps = Math.min(atkDice.length, defDice.length);
-		for (int i = 0; i < reps; i++) {
-			int atkHigh = atkDice[atkDice.length - (1 + i)];
-			int defHigh = defDice[defDice.length - (1 + i)];
-			int difference = atkHigh - defHigh;
-			if (difference > 0)
-				defCasualties++;
-			else
-				atkCasualties++;
-		}
-		
-		System.out.printf("Attack lost %d %s.%n", atkCasualties, grammar(atkCasualties, "troop", "troops"));
-		System.out.printf("Defense lost %d %s.%n", defCasualties, grammar(defCasualties, "troop", " troops"));
-		attackArmy -= atkCasualties;
-		defenseArmy -= defCasualties;
-		
-		reportArmies();
-	}
-	
-	public void reportArmies() {
-		System.out.printf("Attack has %d %s.%n", attackArmy, grammar(attackArmy, "army", "armies"));
-		System.out.printf("Defense has %d %s.%n", defenseArmy, grammar(defenseArmy, "army", "armies"));
-	}
-	
-	public String grammar(int number, String singular, String plural) {
-		return number == 1 ? singular : plural;
-	}
-	
-	public String grammar(double number, String singular, String plural) {
-		return number == 1.0 ? singular : plural;
 	}
 }
