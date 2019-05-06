@@ -89,21 +89,21 @@ public class BattleSimulator {
 	}
 	
 	public int[] getDice(boolean isAttack, int army) {
-		int[] dice;
 		int attackOffset = 0;
 		int maxDice = 2;
-		Random rand = new Random();
 		
 		if (isAttack) {
 			maxDice = 3;
 			attackOffset = 1;
 		}
 		
+		int[] dice;
 		if (army > maxDice)
 			dice = new int[maxDice];
 		else
 			dice = new int[army - attackOffset];
 		
+		Random rand = new Random();
 		for (int i = 0; i < dice.length; i++)
 			dice[i] = rand.nextInt(6) + 1;
 		
