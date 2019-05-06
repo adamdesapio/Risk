@@ -16,6 +16,7 @@ public class Logger {
 			try {
 				out = new PrintStream(new FileOutputStream("risk_output.txt", false));
 				return;
+				
 			} catch (FileNotFoundException e) {
 				System.err.println("Problem writing to file, writing to console instead.");
 			}
@@ -52,14 +53,22 @@ public class Logger {
 	}
 	
 	public void reportBattleOutcome(String winner) {
-		out.println(winner + " won.\n");
+		out.printf("%s won.%n%n", winner);
 	}
 	
-	public void reportSimulationOutcome(int attackWins, double averageAttackRemaining, int defenseWins, double averageDefenseRemaining) {
-		out.printf("%nAttack won %d %s with an average of %.1f %s left.%n", 
+	public void reportSimulationOutcomeFile(int attackWins, double averageAttackRemaining, int defenseWins, double averageDefenseRemaining) {
+		out.printf("Attack won %d %s with an average of %.1f %s left.%n", 
 				attackWins, grammar(attackWins, "time", "times"), averageAttackRemaining, grammar(averageAttackRemaining, "troop", "troops"));
 		
-		out.printf("Defense won %d %s with an average of %.1f %s left.%n", 
+		out.printf("Defense won %d %s with an average of %.1f %s left.", 
+				defenseWins, grammar(defenseWins, "time", "times"), averageDefenseRemaining, grammar(averageDefenseRemaining, "troop", "troops"));
+	}
+	
+	public void reportSimulationOutcomeConsole(int attackWins, double averageAttackRemaining, int defenseWins, double averageDefenseRemaining) {
+		System.out.printf("Attack won %d %s with an average of %.1f %s left.%n", 
+				attackWins, grammar(attackWins, "time", "times"), averageAttackRemaining, grammar(averageAttackRemaining, "troop", "troops"));
+		
+		System.out.printf("Defense won %d %s with an average of %.1f %s left.", 
 				defenseWins, grammar(defenseWins, "time", "times"), averageDefenseRemaining, grammar(averageDefenseRemaining, "troop", "troops"));
 	}
 	
@@ -72,7 +81,10 @@ public class Logger {
 	}
 	
 	public void close() {
-		if (isTextFileOutput)
-			out.close();
+		out.close();
+	}
+	
+	public boolean isTextFileOutput() {
+		return isTextFileOutput;
 	}
 }
